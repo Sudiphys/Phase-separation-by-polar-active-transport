@@ -63,7 +63,7 @@ It is set to zero when the total motor density is zero.
 | `agdcpxx`, `agdcpyy` | Components of $(\hat c_+/u)\nabla\hat c_+$ |
 | `agdcmxx`, `agdcmyy` | Components of $(\hat c_-/u)\nabla\hat c_-$ |
 | `bpsx`, `bpsy` | Components of $\psi\mathbf p$ |
-| `amucp`, `amucm` | $\mu_\pm^{\mathrm{grad}}=-\texttt{azetap}\,\Delta\hat c_\pm\pm g\,\pi d/(2L)\,\nabla\cdot(\psi\mathbf p)$ |
+| `amucp`, `amucm` | $\mu_\pm^{\mathrm{grad}}=-\texttt{azetap} \Delta\hat c_\pm\pm g \pi d/(2L)\nabla\cdot(\psi\mathbf p)$ |
 | `ajcpx`, `ajcpy` | Components of $\hat c_+\nabla\mu_+^{\mathrm{grad}}$ |
 | `ajcmx`, `ajcmy` | Components of $\hat c_-\nabla\mu_-^{\mathrm{grad}}$ |
 | `addtotcp`, `addtotcm` | Complete right-hand sides of S10a |
