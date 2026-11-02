@@ -1,6 +1,6 @@
 # Simulation of Eqs. S10a–S10c
 
-Documentation for `S10_commented_code.f`. 
+Documentation for `active_phase_separation_final_commented.f`. 
 
 ## Fields and notation
 

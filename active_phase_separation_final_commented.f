@@ -42,7 +42,7 @@ c     The last array index stores the current and next time levels.
       DOUBLE PRECISION vmfield(k,k),motors
 c     First snapshot at step 10000; the interval then doubles.
       integer next_save
-      next_save = 10000
+      next_save = 13333
 
        iseed=-137571
        iseed1=-137573
