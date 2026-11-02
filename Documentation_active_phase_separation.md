@@ -25,7 +25,7 @@ Values marked “variable” are varied between simulation runs. The derived coe
 |---|---|---:|
 | `Dr` | Rotational rate used for time scaling | 0.1 |
 | `lp`, `Le` | Length scale and microtubule length $L$ | 5 |
-| `d` | Diameter $d$ | 0.02 |
+| `d` | Radius $d$ | 0.02 |
 | `lsq` | $2L$ | 10 |
 | `v0` | Dimensional motor speed $v_0$ | 0.25 |
 | `alpha`, `bet` | $\alpha$, $\beta$ | between 100 and 1000, 1 |
@@ -83,8 +83,8 @@ $$
 | Code | Calculated quantity |
 |---|---|
 | `agrp2`, `dpcdf`, `aggp2` | $A$, $B$, $H$ |
-| `conpx`, `conpy` | Components of $\texttt{vm}\,\psi\mathbf p$ |
-| `addcompsi` | $\nabla\cdot(\texttt{vm}\,\psi\mathbf p)$ |
+| `conpx`, `conpy` | Components of $\texttt{vm}\psi\mathbf p$ |
+| `addcompsi` | $\nabla\cdot(\texttt{vm}\psi\mathbf p)$ |
 | `agdpx`, `agdpy` | Components of $(2L/\pi d)(\psi/u)\nabla\psi$ |
 | `tlapsi` | $\Delta\psi+(2L/\pi d)\nabla\cdot[(\psi/u)\nabla\psi]$ |
 | `divpsx`, `divpsy` | Components of $\psi\nabla A$ |
