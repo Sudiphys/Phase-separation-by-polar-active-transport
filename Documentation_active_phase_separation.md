@@ -114,7 +114,7 @@ $$
 =\tilde\kappa\left[
 2(\nabla\cdot\mathbf p)\nabla\left(\frac{\psi}{\psi_0}\right)
 +\frac{\psi}{\psi_0}\nabla(\nabla\cdot\mathbf p)\right],
-\qquad \tilde\kappa=\texttt{akap} \psi_0.
+\qquad \tilde\kappa / \psi_0=\texttt{akap}.
 $$
 
 `addpx` and `addpy` are the complete polarization right-hand sides.
@@ -145,7 +145,7 @@ Each grid sweep is completed over the whole grid before the next begins, so deri
 
 The program reads 900 filename entries from each of `fnamerhol`, `fnamerholp`, `fnamerholp5`, and `fnamerholp8`. Snapshot filenames come from `fnamerhol`, beginning with entry 101; names should fit the eight-character strings declared in the code.
 
-Snapshots are saved at $steps*D_r=$ 1, 2, 4, and successive doublings within the run. Each row contains
+Snapshots are saved at $t*D_r=$ 1, 2, 4, and successive doublings within the run. Each row contains
 
 ```text
 i  j  psi  c_plus  c_minus  p_x  p_y
