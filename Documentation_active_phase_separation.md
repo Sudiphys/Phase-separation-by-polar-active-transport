@@ -102,7 +102,7 @@ $$
 
 | Code contribution, after division by `x` | Term in the polarization equation |
 |---|---|
-| `tpbetax`, `tpbetay` | $-{\mathbf p}(1+\alpha|{\mathbf p}|^2)$ |
+| `tpbetax`, `tpbetay` | $-\mathbf p(1+\alpha \vert \mathbf p \vert^2)$ |
 | `tnux/bet`, `tnuy/bet` | $(g/\beta)\nabla(\hat c_+-\hat c_-)$ |
 | `tpkapx`, `tpkapy` | $(\texttt{akap}/\psi)\nabla[\psi^2\nabla\cdot\mathbf p]$ |
 | `-advpx*x`, `-advpy*x` | $\texttt{vm}(\mathbf p\cdot\nabla)\mathbf p=-\tilde v_{mt}(\mathbf p\cdot\nabla)\mathbf p$ |
