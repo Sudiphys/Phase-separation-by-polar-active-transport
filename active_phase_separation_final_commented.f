@@ -7,7 +7,7 @@ c     ieee_is_finite detects NaN and infinite field values.
       use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit real*8(a-h,o-z)
       character*8 names(901),name1(901),name2(900),name3(900)
-      parameter(k=340,k2=k**2,khalf=k/2,n=1)
+      parameter(k=420,k2=k**2,khalf=k/2,n=1)
       
 cc    k refers to the system size
 
