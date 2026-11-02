@@ -92,7 +92,7 @@ $$
 | `dpcdfpsi1`, `dpcdfpsi2` | Components of $\psi\nabla B$ |
 | `tnupsict` | $-g\nabla\cdot(\psi\nabla B)$ |
 | `aggpx2s`, `aggpy2s` | Components of $\psi\nabla H$ |
-| `tkapsi` | $\beta\,\texttt{akap}\,\nabla\cdot(\psi\nabla H)$ |
+| `tkapsi` | $\beta \texttt{akap} \nabla\cdot(\psi\nabla H)$ |
 
 `addpsitotal` is `Dmt` times the sum of `tlapsi`, `tbetpsi`, `tnupsict`, and `tkapsi`. The complete density right-hand side is `addpsitotal+addcompsi`.
 
