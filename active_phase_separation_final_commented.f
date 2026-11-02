@@ -1,7 +1,7 @@
 cc     Two-dimensional periodic simulation of revised S10a-S10c.
 
 c     Fields: x=psi, cp=c_plus, cm=c_minus, plx=p_x, ply=p_y.
-c     gfortran -O2 -ffixed-line-length-none S10_commented_code.f -o simulation
+c     gfortran -O2 -ffixed-line-length-none active_phase_separation_final_commented.f -o simulation
 c     ./simulation
 c     ieee_is_finite detects NaN and infinite field values.
       use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
