@@ -145,7 +145,7 @@ Each grid sweep is completed over the whole grid before the next begins, so deri
 
 The program reads 900 filename entries from each of `fnamerhol`, `fnamerholp`, `fnamerholp5`, and `fnamerholp8`. Snapshot filenames come from `fnamerhol`, beginning with entry 101; names should fit the eight-character strings declared in the code.
 
-Snapshots are saved at $steps*D_r$ 1, 2, 4, and successive doublings within the run. Each row contains
+Snapshots are saved at $steps*D_r=$ 1, 2, 4, and successive doublings within the run. Each row contains
 
 ```text
 i  j  psi  c_plus  c_minus  p_x  p_y
