@@ -1,197 +1,154 @@
-# Documentation: Phase separation by polar active transport
+# Simulation of Eqs. S10a–S10c
 
-The program integrates Eqs. (S10a–c) on a two-dimensional periodic square grid using centered spatial differences and explicit forward Euler time integration. This document describes the supplied source without modifying it.
+Documentation for `S10_commented_code.f`. 
 
-## Fields and coefficients
+## Fields and notation
 
-| Code variable | Meaning |
+The program evolves five fields on a two-dimensional periodic square grid.
+
+| Code | Quantity |
 |---|---|
-| `x(i,j,iold)` | Microtubule area fraction, $\psi$ |
-| `cp(i,j,iold)` | Plus-motor area fraction, $\hat c_+$ |
-| `cm(i,j,iold)` | Minus-motor area fraction, $\hat c_-$ |
-| `plx(i,j,iold)`, `ply(i,j,iold)` | Polarity components, $p_x,p_y$ |
-| `cdif(i,j,iold)` | Motor difference, $\delta c=\hat c_+-\hat c_-$ |
-| `atot` | Total area fraction, $s=\psi+\hat c_++\hat c_-$ |
-| `polOP` | Squared polarity magnitude, $|\mathbf p|^2$ |
-| `iold`, `inew` | Indices of the old and updated time buffers |
+| `x` | Microtubule area fraction, $\psi$ |
+| `cp`, `cm` | Motor area fractions, $\hat c_+$ and $\hat c_-$ |
+| `plx`, `ply` | Polarization components, $p_x$ and $p_y$ |
+| `cdif` | Motor area-fraction difference, $\hat c_+-\hat c_-$ |
+| `iold`, `inew` | Current and updated time buffers |
+| `p(i)`, `m(i)` | Next and previous grid indices, with periodic wrapping |
 
-The coefficients entering the evolution equations are mapped as follows:
+Below, all derivatives are with respect to the dimensionless coordinates of S10. Define $u=1-\hat c_+-\hat c_--\psi$ and $g=\tilde\nu/\tilde v_0$.
 
-| Code variable | Definition in the code | Corresponding coefficient in S10 |
-|---|---|---|
-| `Dmt` | `Dpsi/(Dr*lp*lp)` | $\widetilde D_{mt}$ |
-| `Dm` | `Dc/(Dr*lp*lp)` | $\widetilde D$ |
-| `vp` | `v0/(Dr*lp)` | $\widetilde v_0$ |
-| `ara` | `Dc*DLOG(Le/d)/(pi*d*v0)` | $1/\mathfrak R$ |
-| `anup` | `anu*arho/lp` | Effective coupling $\widetilde\nu$ appearing in S10 |
-| `azetap` | `azeta*arho/(lp*lp)` | $2\widetilde\zeta/(\hat c_0^++\hat c_0^-)$ |
-| `akap` | Directly assigned | $\widetilde\kappa/\psi_0$ |
-| `bet`, `alpha` | Directly assigned | $\beta,\alpha$ |
-| `lsq` | `2*Le` | $2L$ |
-| `arho` | `1/(pi*0.02D0*0.02D0)` | Reference concentration $\rho_0$ for the specified radius |
+## Parameters
 
-`lp` is the length used to scale speed and diffusion; `Le` is the microtubule length in the geometric factors. Both equal 5 in this source. `d` is the motor radius. `Dr` is the rotational diffusion coefficient; `Dpsi` and `Dc` are the input microtubule and motor diffusion coefficients.
+Values marked “variable” are varied between simulation runs. The derived coefficient `azetap` is recalculated as `azeta*arho/lp**2`.
 
-The local velocity variable has the convention
+| Code | Definition or meaning | Value |
+|---|---|---:|
+| `Dr` | Rotational rate used for time scaling | 0.1 |
+| `lp`, `Le` | Length scale and microtubule length $L$ | 5 |
+| `d` | Diameter $d$ | 0.02 |
+| `lsq` | $2L$ | 10 |
+| `v0` | Dimensional motor speed $v_0$ | 0.25 |
+| `alpha`, `bet` | $\alpha$, $\beta$ | between 100 and 1000, 1 |
+| `Dpsi`, `Dc` | Dimensional microtubule and motor diffusivities | 0.1, 1 |
+| `arho` | $\rho_0=1/(\pi d^2)$ | 795.774715 |
+| `anu` | Effective dimensional coupling $\nu$ | 0.007 |
+| `azeta` | Dimensional motor gradient coefficient | variable  |
+| `akap` | $\tilde\kappa/\psi_0$ | 0.00005 |
+| `Dmt` | $\tilde D_{mt}=D_\psi/(D_rL^2)$ | 0.04 |
+| `Dm` | $\tilde D=D_c/(D_rL^2)$ | 0.4 |
+| `vp` | $\tilde v_0=v_0/(D_rL)$ | 0.5 |
+| `anup` | $g=\nu\rho_0/L=\tilde\nu/\tilde v_0$ | 1.114085 |
+| `azetap` | $2\tilde\zeta/(\hat c_0^++\hat c_0^-)$ | variable  |
+| `ara` | $1/\mathfrak R=D_c\ln(L/d)/(\pi d v_0)$ | 351.507119 |
 
-$$\texttt{vm}=\texttt{vp}\frac{\hat c_+-\hat c_-}{\hat c_++\hat c_-}=-\widetilde v_{mt}.$$
+The SI definition $\tilde\nu=\nu\rho_0\tilde v_0/L$ gives $\tilde\nu\simeq0.55704$. The code uses **`anup` = $\tilde\nu/\tilde v_0$**, not $\tilde\nu$.
 
-It is calculated at every grid point and stored in `vmfield`. If the total motor fraction is zero, `vmfield` is set to zero.
+The array `vmfield` stores the local value of $-\tilde v_{mt}$ from the SI. At each grid point, `vm=vmfield(i,j)` retrieves this value:
 
-## Spatial derivatives
+$$
+\texttt{vmfield}=\texttt{vm}
+=\tilde v_0\frac{\hat c_+-\hat c_-}{\hat c_++\hat c_-}
+=-\tilde v_{mt}.
+$$
 
-`p(i)` and `m(i)` give the forward and backward periodic neighbors. They are index arrays, distinct from the polarity field $\mathbf p$.
+It is set to zero when the total motor density is zero.
 
-For any scalar field $f$,
+## S10a: motor-density equations
 
-$$D_xf_{i,j}=\frac{f_{p(i),j}-f_{m(i),j}}{2\,\texttt{dx}},\qquad D_yf_{i,j}=\frac{f_{i,p(j)}-f_{i,m(j)}}{2\,\texttt{dx}}.$$
-
-The Laplacian is
-
-$$\Delta_hf_{i,j}=\frac{f_{p(i),j}+f_{m(i),j}+f_{i,p(j)}+f_{i,m(j)}-4f_{i,j}}{\texttt{dx}^2}.$$
-
-`dx2=2*dx` is the denominator for first derivatives; `dxx=dx**2` is the denominator for second derivatives. Gradients and divergences of intermediate fields are obtained by applying the centered first differences successively. In the mappings below, $\nabla$ and $\nabla\cdot$ denote these centered operators, and $\Delta_h$ denotes the five-point Laplacian.
-
-## Motor equations: S10a
-
-The active transport vectors inside the right-hand-side divergences are
-
-$$\mathbf V_+=\texttt{ara}(-\texttt{vp}+\texttt{vm})\psi\hat c_+\mathbf p,\qquad \mathbf V_-=\texttt{ara}(\texttt{vp}+\texttt{vm})\psi\hat c_-\mathbf p.$$
-
-The gradient-energy and torque contributions to the motor chemical potentials are
-
-$$\mu_+^{g}=-\texttt{azetap}\,\Delta_h\hat c_++\texttt{anup}\frac{\pi d}{\texttt{lsq}}\nabla\cdot(\psi\mathbf p),$$
-$$\mu_-^{g}=-\texttt{azetap}\,\Delta_h\hat c_--\texttt{anup}\frac{\pi d}{\texttt{lsq}}\nabla\cdot(\psi\mathbf p).$$
-
-| Code expression | Calculated quantity |
+| Code | Calculated quantity |
 |---|---|
-| `conpxp`, `conpyp` | Components of $\mathbf V_+$ |
-| `conmxm`, `conmym` | Components of $\mathbf V_-$ |
-| `conpxxp+conpyyp` | $\nabla\cdot\mathbf V_+$ |
-| `conmxxm+conmyym` | $\nabla\cdot\mathbf V_-$ |
-| `acpxx+acpyy` | $\Delta_h\hat c_+$ |
-| `acmxx+acmyy` | $\Delta_h\hat c_-$ |
-| `agdcpxx`, `agdcpyy` | Components of $\hat c_+\nabla\hat c_+/(1-s)$ |
-| `agdcmxx`, `agdcmyy` | Components of $\hat c_-\nabla\hat c_-/(1-s)$ |
-| `agdcpsxxx+agdcpsyyy` | $\nabla\cdot[\hat c_+\nabla\hat c_+/(1-s)]$ |
-| `agdcmsxxx+agdcmsyyy` | $\nabla\cdot[\hat c_-\nabla\hat c_-/(1-s)]$ |
+| `conpxp`, `conpyp` | Components of $\mathfrak R^{-1}(-\tilde v_0+\texttt{vm})\psi\hat c_+\mathbf p$ |
+| `conmxm`, `conmym` | Components of $\mathfrak R^{-1}(\tilde v_0+\texttt{vm})\psi\hat c_-\mathbf p$ |
+| `acpxx+acpyy`, `acmxx+acmyy` | $\Delta\hat c_+$ and $\Delta\hat c_-$ |
+| `agdcpxx`, `agdcpyy` | Components of $(\hat c_+/u)\nabla\hat c_+$ |
+| `agdcmxx`, `agdcmyy` | Components of $(\hat c_-/u)\nabla\hat c_-$ |
 | `bpsx`, `bpsy` | Components of $\psi\mathbf p$ |
-| `bpsxx+bpsyy` | $\nabla\cdot(\psi\mathbf p)$ |
-| `amucp`, `amucm` | $\mu_+^{g},\mu_-^{g}$ |
-| `ajcpx`, `ajcpy` | Components of $\hat c_+\nabla\mu_+^{g}$ |
-| `ajcmx`, `ajcmy` | Components of $\hat c_-\nabla\mu_-^{g}$ |
-| `divcpx+divcpy` | $\nabla\cdot(\hat c_+\nabla\mu_+^{g})$ |
-| `divcmx+divcmy` | $\nabla\cdot(\hat c_-\nabla\mu_-^{g})$ |
+| `amucp`, `amucm` | $\mu_\pm^{\mathrm{grad}}=-\texttt{azetap}\,\Delta\hat c_\pm\pm g\,\pi d/(2L)\,\nabla\cdot(\psi\mathbf p)$ |
+| `ajcpx`, `ajcpy` | Components of $\hat c_+\nabla\mu_+^{\mathrm{grad}}$ |
+| `ajcmx`, `ajcmy` | Components of $\hat c_-\nabla\mu_-^{\mathrm{grad}}$ |
+| `addtotcp`, `addtotcm` | Complete right-hand sides of S10a |
 
-The complete motor right-hand sides are
+The program takes the divergence of each stored vector. Diffusion, self-gradient crowding, and gradient-coupling contributions are multiplied by `Dm`; active transport is added separately. These stored vectors appear with a **positive divergence** in the equations.
 
-$$\texttt{addtotcp}=\nabla\cdot\mathbf V_++\texttt{Dm}\left[\Delta_h\hat c_++\nabla\cdot\left(\frac{\hat c_+}{1-s}\nabla\hat c_+\right)+\nabla\cdot(\hat c_+\nabla\mu_+^{g})\right],$$
-
-$$\texttt{addtotcm}=\nabla\cdot\mathbf V_-+\texttt{Dm}\left[\Delta_h\hat c_-+\nabla\cdot\left(\frac{\hat c_-}{1-s}\nabla\hat c_-\right)+\nabla\cdot(\hat c_-\nabla\mu_-^{g})\right].$$
-
-These contain active transport, ordinary diffusion, excluded-volume diffusion, motor gradient energy, and torque coupling. Vectors inside a positive right-hand-side divergence have the opposite sign to the physical current in $\partial_tc=-\nabla\cdot\mathbf j$.
-
-## Microtubule equation: S10b
+## S10b: microtubule-density equation
 
 Define
 
-$$q=\nabla\cdot\mathbf p,\qquad A=|\mathbf p|^2\left(1+\frac\alpha2|\mathbf p|^2\right),\qquad B=\mathbf p\cdot\nabla\delta c,\qquad H=\psi q^2.$$
+$$
+A=|\mathbf p|^2\left(1+\frac{\alpha}{2}|\mathbf p|^2\right),\qquad
+B=\mathbf p\cdot\nabla(\hat c_+-\hat c_-),\qquad
+H=\psi(\nabla\cdot\mathbf p)^2.
+$$
 
-| Code expression | Calculated quantity |
+| Code | Calculated quantity |
 |---|---|
+| `agrp2`, `dpcdf`, `aggp2` | $A$, $B$, $H$ |
 | `conpx`, `conpy` | Components of $\texttt{vm}\,\psi\mathbf p$ |
-| `addcompsi` | $\nabla\cdot(\texttt{vm}\,\psi\mathbf p)$: active transport |
-| `agrp2` | $A$ |
+| `addcompsi` | $\nabla\cdot(\texttt{vm}\,\psi\mathbf p)$ |
+| `agdpx`, `agdpy` | Components of $(2L/\pi d)(\psi/u)\nabla\psi$ |
+| `tlapsi` | $\Delta\psi+(2L/\pi d)\nabla\cdot[(\psi/u)\nabla\psi]$ |
 | `divpsx`, `divpsy` | Components of $\psi\nabla A$ |
-| `dpcdf` | $B$ |
+| `tbetpsi` | $(\beta/2)\nabla\cdot(\psi\nabla A)$ |
 | `dpcdfpsi1`, `dpcdfpsi2` | Components of $\psi\nabla B$ |
-| `aggp2` | $H$ |
-| `aggpx2`, `aggpy2` | Components of $\nabla H$ |
+| `tnupsict` | $-g\nabla\cdot(\psi\nabla B)$ |
 | `aggpx2s`, `aggpy2s` | Components of $\psi\nabla H$ |
-| `agdpx`, `agdpy` | Components of $(\texttt{lsq}/\pi d)\psi\nabla\psi/(1-s)$ |
+| `tkapsi` | $\beta\,\texttt{akap}\,\nabla\cdot(\psi\nabla H)$ |
 
-The individual density contributions are
+`addpsitotal` is `Dmt` times the sum of `tlapsi`, `tbetpsi`, `tnupsict`, and `tkapsi`. The complete density right-hand side is `addpsitotal+addcompsi`.
 
-| Code term | Mathematical expression | Meaning |
-|---|---|---|
-| `tlapsi` | $\Delta_h\psi+\nabla\cdot[(2L/\pi d)\psi\nabla\psi/(1-s)]$ | Ordinary and excluded-volume diffusion |
-| `tbetpsi` | $(\texttt{bet}/2)\nabla\cdot(\psi\nabla A)$ | Local polarity-energy contribution |
-| `tnupsict` | $-\texttt{anup}\nabla\cdot(\psi\nabla B)$ | Torque-coupling contribution |
-| `tkapsi` | $\texttt{bet}\,\texttt{akap}\nabla\cdot(\psi\nabla H)$ | Bending contribution |
+## S10c: polarization equation
 
-The code assembles
+`polOP` is $|\mathbf p|^2$, and `pspx` is the scalar $\psi^2\nabla\cdot\mathbf p$.
 
-```fortran
-addpsitotal=(tlapsi+tbetpsi+tnupsict+tkapsi)*Dmt
-```
-
-The complete microtubule right-hand side is `addpsitotal+addcompsi`. The active transport term is added outside the `Dmt` factor.
-
-## Polarity equation: S10c
-
-The polarity right-hand side is calculated in the compact form
-
-$$\partial_t\mathbf p=\texttt{vm}(\mathbf p\cdot\nabla)\mathbf p-\mathbf p(1+\alpha|\mathbf p|^2)+\frac{\texttt{anup}}{\texttt{bet}}\nabla\delta c+\frac{\texttt{akap}}{\psi}\nabla(\psi^2q).$$
-
-At the continuum level, the compact bending term equals
-
-$$\frac{\texttt{akap}}\psi\nabla(\psi^2q)=\texttt{akap}\left[2q\nabla\psi+\psi\nabla q\right],$$
-
-which is the form in S10c with `akap` corresponding to $\widetilde\kappa/\psi_0$. The code differences the compact product directly.
-
-| Code variable | Calculated quantity |
+| Code contribution, after division by `x` | Term in the polarization equation |
 |---|---|
-| `pxx`, `pxxy` | $D_xp_x,D_yp_x$ |
-| `pyyx`, `pyy` | $D_xp_y,D_yp_y$ |
-| `pspx` | $\psi^2q$ |
-| `pxpx`, `pypy` | $D_x(\psi^2q),D_y(\psi^2q)$ |
-| `tpbetax`, `tpbetay` | Components of $-\psi\mathbf p(1+\alpha|\mathbf p|^2)$ |
-| `tnux`, `tnuy` | Components of $\texttt{anup}\,\psi\nabla\delta c$ |
-| `tpkapx`, `tpkapy` | Components of $\texttt{akap}\nabla(\psi^2q)$ |
-| `advpx`, `advpy` | Components of $-\texttt{vm}(\mathbf p\cdot\nabla)\mathbf p$ |
+| `tpbetax`, `tpbetay` | $-\mathbf p(1+\alpha|\mathbf p|^2)$ |
+| `tnux/bet`, `tnuy/bet` | $(g/\beta)\nabla(\hat c_+-\hat c_-)$ |
+| `tpkapx`, `tpkapy` | $(\texttt{akap}/\psi)\nabla[\psi^2\nabla\cdot\mathbf p]$ |
+| `-advpx*x`, `-advpy*x` | $\texttt{vm}(\mathbf p\cdot\nabla)\mathbf p=-\tilde v_{mt}(\mathbf p\cdot\nabla)\mathbf p$ |
 
-The program forms `addpx` and `addpy` by adding the relaxation, coupling divided by `bet`, and bending terms, subtracting `advpx*x` or `advpy*x`, and finally dividing by `x`. Thus the advection contribution after assembly is $+\texttt{vm}(\mathbf p\cdot\nabla)\mathbf p=-\widetilde v_{mt}(\mathbf p\cdot\nabla)\mathbf p$.
+The elastic contribution is the conservative-form discretization of
 
-## Time integration and initial conditions
+$$
+\frac{\texttt{akap}}{\psi}\nabla[\psi^2\nabla\cdot\mathbf p]
+=\tilde\kappa\left[
+2(\nabla\cdot\mathbf p)\nabla\left(\frac{\psi}{\psi_0}\right)
++\frac{\psi}{\psi_0}\nabla(\nabla\cdot\mathbf p)\right],
+\qquad \tilde\kappa=\texttt{akap}\,\psi_0.
+$$
 
-Each timestep first calculates `vmfield`, then completes three full-grid intermediate passes. The final pass assembles all right-hand sides from the old fields. The updates are
+`addpx` and `addpy` are the complete polarization right-hand sides.
 
-```fortran
-x(i,j,inew)=x(i,j,iold)+(addpsitotal+addcompsi)*dt
-cp(i,j,inew)=cp(i,j,iold)+addtotcp*dt
-cm(i,j,inew)=cm(i,j,iold)+addtotcm*dt
-plx(i,j,inew)=plx(i,j,iold)+addpx*dt
-ply(i,j,inew)=ply(i,j,iold)+addpy*dt
-cdif(i,j,inew)=cp(i,j,inew)-cm(i,j,inew)
-```
+## Numerical steps
 
-After output, `iold` and `inew` are exchanged. The supplied settings are `k=340`, `dx=0.015`, `dt=0.000075`, and `ntime=200000000`. The periodic grid has $340\times340$ sites and side length `k*dx=5.1` in reduced coordinates.
+The number of grid points `k`, grid spacing `dx`, and timestep `dt` are selected for each run. First derivatives use centered differences; Laplacians use the nearest-neighbor five-point stencil.
 
-Initial fields are generated using `ran2`:
+1. **Initialize the fields.** Set the mean microtubule area fraction to 0.2, select the mean motor area fractions, and initialize each polarization component around zero. Add uniform random perturbations using `ran2`.
 
-| Field | Initial distribution |
-|---|---|
-| $\psi$ | `avgpsi=0.2` plus a uniform perturbation in $[-0.025,0.025]$ |
-| $\hat c_+$ | `avgcp=0.15` plus a uniform perturbation in $[-0.005,0.005]$ |
-| $\hat c_-$ | `avgcm=0.15` plus a uniform perturbation in $[-0.005,0.005]$ |
-| $p_x,p_y$ | Each component has `avgp=0` plus a uniform perturbation in $[-0.025,0.025]$ |
+2. **Check the fields and calculate microtubule transport.** At each timestep, check the current fields and denominators. Calculate $-\tilde v_{mt}=\tilde v_0(\hat c_+-\hat c_-)/(\hat c_++\hat c_-)$ and store it in `vmfield`. Set this value to zero when the total motor area fraction is zero.
 
-At the start of each timestep, the program checks the old fields for positive microtubule fraction, nonnegative motor fractions, total fraction below one, and finite tested values. A failed check stops the run.
+3. **First grid sweep: calculate intermediate quantities.** At every grid point, calculate $A$, $B$, and $H$ defined above, together with $\psi\mathbf p$ and $\psi^2\nabla\cdot\mathbf p$. Calculate the active transport vectors and the crowding vectors $(2L/\pi d)(\psi/u)\nabla\psi$ and $(\hat c_\pm/u)\nabla\hat c_\pm$.
+
+4. **Second grid sweep: differentiate the intermediate quantities.** Calculate $\psi\nabla A$, $\psi\nabla B$, and $\nabla H$ from the completed arrays. Calculate the motor Laplacians and $\nabla\cdot(\psi\mathbf p)$, then construct the motor potentials `amucp` and `amucm` defined above.
+
+5. **Third grid sweep: prepare vectors for the density equations.** Multiply $\nabla H$ by $\psi$ and store its components in `aggpx2s` and `aggpy2s`. This vector supplies the elastic contribution to the microtubule-density equation through $\tilde D_{mt}\beta\,\texttt{akap}\,\nabla\cdot(\psi\nabla H)$. Calculate the gradients of `amucp` and `amucm` and multiply them by the respective motor area fractions to form $\hat c_\pm\nabla\mu_\pm^{\mathrm{grad}}$.
+
+6. **Calculate the time derivatives and advance the fields.** Take the required divergences and assemble the complete right-hand sides of S10a–S10c. Use forward Euler, $f^{n+1}=f^n+\texttt{dt}\,R_f^n$, to write the updated fields into `inew`.
+
+7. **Complete the timestep.** Update `cdif`, write a snapshot when scheduled, and swap `iold` and `inew`.
+
+Each grid sweep is completed over the whole grid before the next begins, so derivatives use completed neighboring intermediate values. All intermediate quantities and right-hand sides are evaluated from the fields at the current time level `iold`.
+
+`ieee_is_finite` detects non-finite values. The program stops if the tested fields are non-finite, $\psi\leq0$, either motor density is negative, or $\psi+\hat c_++\hat c_-\geq1$. It does not clip the densities.
 
 ## Input and output
 
-The program reads 900 filename entries from each of `fnamerhol`, `fnamerholp`, `fnamerholp5`, and `fnamerholp8`. The snapshot filenames are taken from `names`, loaded from `fnamerhol`.
+The program reads 900 filename entries from each of `fnamerhol`, `fnamerholp`, `fnamerholp5`, and `fnamerholp8`. Snapshot filenames come from `fnamerhol`, beginning with entry 101; names should fit the eight-character strings declared in the code.
 
-Snapshots are saved at steps 10000, 20000, 40000, and subsequent doublings. The first snapshot uses `names(101)`. Each snapshot contains
+Snapshots are saved at steps 10000, 20000, 40000, and successive doublings within the run. Each row contains
 
-| Column | Quantity |
-|---|---|
-| 1 | Grid index `i` |
-| 2 | Grid index `j` |
-| 3 | `da1`: $\psi$ |
-| 4 | `da2`: $\hat c_+$ |
-| 5 | `da3`: $\hat c_-$ |
-| 6 | `da4`: $p_x$ |
-| 7 | `da5`: $p_y$ |
+```text
+i  j  psi  c_plus  c_minus  p_x  p_y
+```
 
-`data_comp_polarity.dat` contains one parameter row in the order `vp, Dmt, Dm, anup, azetap, akap, ara`.
+`data_comp_polarity.dat` records `vp Dmt Dm anup azetap akap ara` at the first step. `data.dat` is opened but receives no data in this version.
