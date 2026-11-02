@@ -114,7 +114,7 @@ $$
 =\tilde\kappa\left[
 2(\nabla\cdot\mathbf p)\nabla\left(\frac{\psi}{\psi_0}\right)
 +\frac{\psi}{\psi_0}\nabla(\nabla\cdot\mathbf p)\right],
-\qquad \tilde\kappa=\texttt{akap}\,\psi_0.
+\qquad \tilde\kappa=\texttt{akap} \psi_0.
 $$
 
 `addpx` and `addpy` are the complete polarization right-hand sides.
